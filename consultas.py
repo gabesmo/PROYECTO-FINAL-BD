@@ -76,9 +76,17 @@ consultas_predef = {
                                                         FROM COLEGIO C
                                                         JOIN UNIFORME U ON C.Nit_Colegio = U.Nit_Colegio;
                                                     """,
-        "Características uniforme por colegio": """ SELECT *
-                                                    FROM UNIFORME 
-                                                    WHERE Nit_Colegio = '900123456'; #SOLUCIONAR ESTO
+        "Características uniforme por colegio": """ SELECT
+                                                        C.NIT_COLEGIO,
+                                                        C.NOMBRE,
+                                                        U.BORDES_COLOR,
+                                                        U.TIPO_BORD,
+                                                        U.TIPO_TELA,
+                                                        U.LUGAR_BORD,
+                                                        U.COLOR
+                                                    FROM
+                                                        COLEGIO C
+                                                        JOIN UNIFORME U ON C.NIT_COLEGIO = U.NIT_COLEGIO
                                                 """,
     },
 
