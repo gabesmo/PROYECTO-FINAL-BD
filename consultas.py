@@ -47,14 +47,7 @@ consultas_predef = {
                                             LEFT JOIN PEDIDO P ON V.Id_Venta = P.Id_Venta
                                             WHERE P.Id_Venta IS NULL;
                                         """,
-        "Promedio de ventas por cliente": """ SELECT AVG(Total_Gastado) AS Promedio_Gastado
-                                            FROM (
-                                                SELECT C.No_Id, SUM(V.Total_Venta) AS Total_Gastado
-                                                FROM CLIENTE C
-                                                JOIN VENTA V ON C.No_Id = V.No_Id
-                                                GROUP BY C.No_Id
-                                            ) AS Gastos_Por_Cliente;    
-                                        """,
+
     },
 
     "PEDIDO": {
@@ -123,10 +116,18 @@ consultas_predef = {
 
     "PROVEEDOR": {
         "Todos los proveedores": "SELECT * FROM proveedor;",
-        "Proveedores y sus materias primas": """ SELECT P.Nit_Proveedor, P.Nombre, MP.Codigo_MatPrima, MP.Nombre AS Nombre_MatPrima
-                                                FROM PROVEEDOR P
-                                                JOIN SUMINISTRA S ON P.Nit_Proveedor = S.Nit_Proveedor
-                                                JOIN MATERIA_PRIMA MP ON S.Codigo_MatPrima = MP.Codigo_MatPrima;
+        "Proveedores y sus materias primas": """ SELECT 
+                                                    P.Nit_Prov,
+                                                    P.Nombre,
+                                                    MP.Codigo_MatP,
+                                                    MP.Tipo,
+                                                    MP.Descripcion,
+                                                    MP.Unidad_Med,
+                                                    MP.Cantidad
+                                                FROM 
+                                                    PROVEEDOR P
+                                                    JOIN SUMINISTRA S ON P.Nit_Prov = S.Nit_Prov
+                                                    JOIN MATERIA_PRIMA MP ON S.Codigo_MatP = MP.Codigo_MatP;
                                             """
                                             
     },
@@ -134,14 +135,17 @@ consultas_predef = {
     "MATERIA_PRIMA": {
         "Todas las materias primas": "SELECT * FROM materia_prima;",
         "Materias primas por proveedor": """ SELECT
-                                                MP.Codigo_MatPrima,
-                                                MP.Nombre,
-                                                P.Nit_Proveedor,
+                                                MP.Codigo_MatP,
+                                                MP.Tipo,
+                                                MP.Descripcion,
+                                                MP.Unidad_Med,
+                                                MP.Cantidad,
+                                                P.Nit_Prov,
                                                 P.Nombre AS Nombre_Proveedor
                                             FROM
                                                 MATERIA_PRIMA MP
-                                                JOIN SUMINISTRA S ON MP.Codigo_MatPrima = S.Codigo_MatPrima
-                                                JOIN PROVEEDOR P ON S.Nit_Proveedor = P.Nit_Proveedor;
+                                                JOIN SUMINISTRA S ON MP.Codigo_MatP = S.Codigo_MatP
+                                                JOIN PROVEEDOR P ON S.Nit_Prov = P.Nit_Prov;
                                             """,
     },
 
@@ -153,21 +157,18 @@ consultas_predef = {
         "Todos los usos de materia prima": "SELECT * FROM utiliza;",
         "Materia prima utilizada por uniforme": """ SELECT
                                                         U.Codigo_Prod,
-                                                        U.Codigo_MatPrima,
-                                                        MP.Nombre AS Nombre_MatPrima,
-                                                        U.Cantidad_Utilizada
+                                                        MP.Codigo_MatP,
+                                                        MP.Tipo,
+                                                        MP.Descripcion,
+                                                        MP.Unidad_Med,
+                                                        MP.Cantidad AS Cantidad_Disponible
                                                     FROM
-                                                        UTILIZA U
-                                                        JOIN MATERIA_PRIMA MP ON U.Codigo_MatPrima = MP.Codigo_MatPrima
+                                                        UTILIZA UTI
+                                                        JOIN MATERIA_PRIMA MP ON UTI.Codigo_MatP = MP.Codigo_MatP
+                                                        JOIN PRODUCTO_TERMINADO PT ON UTI.Codigo_Prod = PT.Codigo_Prod
+                                                        JOIN UNIFORME U ON PT.Codigo_Prod = U.Codigo_Prod;
                                                 """,
-        "Total materia prima utilizada por uniforme": """ SELECT
-                                                                U.Codigo_Prod,
-                                                                SUM(U.Cantidad_Utilizada) AS Total_MatPrima_Utilizada
-                                                            FROM
-                                                                UTILIZA U
-                                                            GROUP BY
-                                                                U.Codigo_Prod;
-                                                    """,
+        
     },
 
     "UNIFORME": {
