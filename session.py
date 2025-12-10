@@ -24,7 +24,7 @@ def clear_session():
 def is_admin():
     return session_data.get("rol") == "ADMIN"
 
-def is_vendor():
+def is_vendedor():
     return session_data.get("rol") == "VENDEDOR"
 
 def is_logged_in():

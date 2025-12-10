@@ -6,7 +6,7 @@ ctk.set_default_color_theme("blue")
 
 root = ctk.CTk()
 root.title("Tienda Confecciones")
-root.geometry("700x500")
+root.geometry("700x600")
 
 mostrar_login(root)
 

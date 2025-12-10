@@ -2,51 +2,59 @@ import customtkinter as ctk
 from queries_view import mostrar_consultas
 from crud_view import mostrar_crud_general
 from clear import limpiar
-from session import is_admin, is_vendor, get_current_user, clear_session
+from session import is_admin, is_vendedor, get_current_user, clear_session
 from venta_view import mostrar_venta
 from pedidos_view import mostrar_gestion_pedidos
+import theme
 
 def mostrar_menu(root):
     limpiar(root)
-    
+    theme.apply_root_bg(root)
+
+    panel = ctk.CTkFrame(root, fg_color=theme.COLOR_2, corner_radius=12, width=520)
+    panel.pack(expand=True, padx=40, pady=30, fill="both")
+
     user = get_current_user()
-    ctk.CTkLabel(root, text=f"Bienvenido: {user['nombre_completo']}", font=("Arial", 14)).pack(pady=10)
-    ctk.CTkLabel(root, text=f"Rol: {user['rol']}", font=("Arial", 12)).pack(pady=5)
-    
-    ctk.CTkLabel(root, text="Menú Principal", font=("Arial", 16, "bold")).pack(pady=15)
-    
-    # Opciones para ADMIN
+    nombre = user.get('nombre_completo', 'Usuario')
+    rol = user.get('rol', '').upper()
+
+
+    ctk.CTkLabel(panel, text=f"Bienvenido: {nombre}", font=theme.FONT_TITLE,
+                 text_color=theme.TEXT_COLOR).pack(pady=(8, 2))
+    ctk.CTkLabel(panel, text=f"Rol: {rol}", font=theme.FONT_TITLE,
+                 text_color=theme.TEXT_COLOR).pack(pady=(0, 6))
+    ctk.CTkLabel(panel, text="Menú Principal", font=theme.FONT_TITLE,
+                 text_color=theme.TEXT_COLOR).pack(pady=(4, 12))
+
+    btn_frame = ctk.CTkFrame(panel, fg_color=theme.COLOR_2, corner_radius=0)
+    btn_frame.pack(expand=True)         
+
+    bottom_frame = ctk.CTkFrame(panel, fg_color=theme.COLOR_2, corner_radius=0)
+    bottom_frame.pack(side="bottom", fill="x", pady=(8,12))
+
+    def make_button(parent, text, cmd, height=None, pady=(6,0)):
+        kwargs = dict(theme.BTN_KWARGS) 
+        if height:
+            kwargs["height"] = height
+        kwargs.update({"text": text, "command": cmd})
+        btn = ctk.CTkButton(parent, **kwargs)
+        btn.pack(pady=pady, anchor="center")
+        return btn
+
     if is_admin():
-        ctk.CTkButton(root, text="Gestión CRUD Tablas", width=300,
-                      command=lambda: mostrar_crud_general(root)).pack(pady=5)
-        ctk.CTkButton(root, text="Consultas SQL", width=300,
-                      command=lambda: mostrar_consultas(root)).pack(pady=5)
-    
-    # Opciones para VENDEDOR
-    if is_vendor():
-        ctk.CTkButton(root, text="Gestión de Pedidos", width=300,
-                      command=lambda: mostrar_gestion_pedidos(root)).pack(pady=5)
-        ctk.CTkButton(root, text="Procesar Venta", width=300,
-                      command=lambda: mostrar_venta(root)).pack(pady=5)
-        ctk.CTkButton(root, text="Consultas", width=300,
-                      command=lambda: mostrar_consultas(root)).pack(pady=5)
-    
-    ctk.CTkButton(root, text="Cerrar Sesión", width=300,
-                  command=lambda: cerrar_sesion(root)).pack(pady=10)
-    ctk.CTkButton(root, text="Salir", width=300,
-                  command=root.quit).pack(pady=5)
+        make_button(btn_frame, "Gestión CRUD Tablas", lambda: mostrar_crud_general(root), pady=(6,6))
+        make_button(btn_frame, "Consultas SQL", lambda: mostrar_consultas(root), pady=(6,6))
 
-def cerrar_sesion(root):
-    clear_session()
-    from login_view import mostrar_login
-    mostrar_login(root)
 
-def mostrar_gestion_pedidos(root):
-    # Llama a la vista especializada de pedidos
-    from pedidos_view import mostrar_gestion_pedidos as sg
-    sg(root)
+    if is_vendedor():
+        make_button(btn_frame, "Gestión de Pedidos", lambda: mostrar_gestion_pedidos(root), pady=(6,6))
+        make_button(btn_frame, "Procesar Venta", lambda: mostrar_venta(root), pady=(6,6))
+        make_button(btn_frame, "Consultas", lambda: mostrar_consultas(root), pady=(6,6))
 
-def mostrar_venta(root):
-    # Llama a la vista de procesamiento de venta
-    from venta_view import mostrar_venta as sv
-    sv(root)
+    def cerrar_sesion(root):
+        clear_session()
+        from login_view import mostrar_login
+        mostrar_login(root)
+
+    make_button(bottom_frame, "Cerrar Sesión", lambda: cerrar_sesion(root), height=48, pady=0)
+    make_button(bottom_frame, "Salir", root.quit, height=48, pady=(6,0))
