@@ -4,10 +4,9 @@ def conectar():
     try:
         conn = psycopg2.connect(
             host="localhost",
-            database="Cconfeccionesuv",
+            database="CONFECCIONES",
             user="postgres",
-            password="2006",
-            client_encoding="utf8"
+            password="1234"
         )
         return conn
     except Exception as e:
@@ -23,26 +22,11 @@ def ejecutar_consulta(sql, params=None):
     try:
         cur = conn.cursor()
         cur.execute(sql, params)
-        
-        # Check if the query returns results
-        if cur.description is None:
-            # No results to fetch (INSERT, UPDATE, DELETE, etc.)
-            conn.commit()
-            conn.close()
-            return [], []
-        
         filas = cur.fetchall()
-        columnas = [desc[0] for desc in cur.description]
+        columnas = [desc[0] for desc in cur.description] if cur.description else []
         conn.close()
         return filas, columnas
-    except psycopg2.Error as e:
-        print("Error de PostgreSQL:", e)
-        if conn:
-            conn.rollback()
-            conn.close()
-        return None, None
     except Exception as e:
         print("Error:", e)
-        if conn:
-            conn.close()
+        conn.close()
         return None, None
