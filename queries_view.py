@@ -10,12 +10,22 @@ def mostrar_consultas(root):
 
     ctk.CTkLabel(root, text="Tabla:").grid(row=0, column=0, padx=5, pady=5)
 
+    param_frame = ctk.CTkFrame(root)
+    param_frame.grid(row=2, columnspan=2, sticky="ew", padx=5, pady=5)
+    param_entries = []
+
+    def limpiar_parametros():
+        for widget in param_frame.winfo_children():
+            widget.destroy()
+        param_entries.clear()
+
     def actualizar_consultas(tabla_seleccionada):
         """Cargar lista de consultas según la tabla"""
+        limpiar_parametros()
         if tabla_seleccionada in consultas_predef:
             valores = list(consultas_predef[tabla_seleccionada].keys())
             consulta_cb.configure(values=valores)
-            consulta_cb.set("")  # IRefrescar selección
+            consulta_cb.set("")  # Refrescar selección
 
     tabla_cb = ctk.CTkComboBox(
         root, 
@@ -28,7 +38,23 @@ def mostrar_consultas(root):
     
     ctk.CTkLabel(root, text="Consulta:").grid(row=1, column=0, padx=5, pady=5)
 
-    consulta_cb = ctk.CTkComboBox(root, values=[], width=400)
+    def mostrar_parametros(nombre_consulta):
+        limpiar_parametros()
+        tabla = tabla_cb.get()
+        if not tabla or not nombre_consulta:
+            return
+        qdef = consultas_predef.get(tabla, {}).get(nombre_consulta)
+        if not isinstance(qdef, dict):
+            return
+        params = qdef.get("params", [])
+        for idx, param in enumerate(params):
+            ctk.CTkLabel(param_frame, text=param.get("label", param.get("name", "Param"))).grid(row=idx, column=0, sticky="w", padx=5, pady=2)
+            entry = ctk.CTkEntry(param_frame, width=250)
+            entry.grid(row=idx, column=1, sticky="ew", padx=5, pady=2)
+            param_entries.append((param.get("name"), entry))
+        param_frame.grid_columnconfigure(1, weight=1)
+
+    consulta_cb = ctk.CTkComboBox(root, values=[], width=400, command=mostrar_parametros)
     consulta_cb.grid(row=1, column=1, padx=5)
 
     
@@ -64,8 +90,22 @@ def mostrar_consultas(root):
             messagebox.showwarning("Aviso", "Seleccione tabla y consulta")
             return
 
-        sql = consultas_predef[tabla][con_name]
-        resultado = ejecutar_consulta(sql)
+        qdef = consultas_predef[tabla][con_name]
+
+        if isinstance(qdef, dict):
+            sql = qdef.get("sql")
+            params_defs = qdef.get("params", [])
+            valores = []
+            for (name, entry), pdef in zip(param_entries, params_defs):
+                val = entry.get().strip()
+                if val == "":
+                    messagebox.showwarning("Aviso", f"Ingrese valor para {pdef.get('label', name)}")
+                    return
+                valores.append(val)
+            resultado = ejecutar_consulta(sql, tuple(valores))
+        else:
+            sql = qdef
+            resultado = ejecutar_consulta(sql)
 
         if resultado is None or resultado == (None, None):
             messagebox.showerror("Error", "Error al ejecutar la consulta")
@@ -92,8 +132,8 @@ def mostrar_consultas(root):
         for fila in filas:
             tree.insert("", "end", values=fila)
 
-    ctk.CTkButton(root, text="Ejecutar", command=ejecutar).grid(row=2, columnspan=2, pady=10)
-    ctk.CTkButton(root, text="Volver", command=lambda: volver(root)).grid(row=4, columnspan=2, pady=5)
+    ctk.CTkButton(root, text="Ejecutar", command=ejecutar).grid(row=4, columnspan=2, pady=10)
+    ctk.CTkButton(root, text="Volver", command=lambda: volver(root)).grid(row=5, columnspan=2, pady=5)
 
 def volver(root):
     from menu_view import mostrar_menu

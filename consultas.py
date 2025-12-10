@@ -198,6 +198,44 @@ consultas_predef = {
                                                 GROUP BY
                                                     C.NOMBRE;
                                             """,
+        "Características uniforme por NIT (param)": {
+            "sql": """ SELECT
+                                C.NIT_COLEGIO,
+                                C.NOMBRE,
+                                U.BORDES_COLOR,
+                                U.TIPO_BORD,
+                                U.TIPO_TELA,
+                                U.LUGAR_BORD,
+                                U.COLOR
+                            FROM
+                                COLEGIO C
+                                JOIN UNIFORME U ON C.NIT_COLEGIO = U.NIT_COLEGIO
+                            WHERE
+                                C.NIT_COLEGIO = %s
+                        """,
+            "params": [
+                {"name": "nit_colegio", "label": "NIT Colegio"}
+            ],
+        },
+        "Características uniforme por nombre (param)": {
+            "sql": """ SELECT
+                                C.NIT_COLEGIO,
+                                C.NOMBRE,
+                                U.BORDES_COLOR,
+                                U.TIPO_BORD,
+                                U.TIPO_TELA,
+                                U.LUGAR_BORD,
+                                U.COLOR
+                            FROM
+                                COLEGIO C
+                                JOIN UNIFORME U ON C.NIT_COLEGIO = U.NIT_COLEGIO
+                            WHERE
+                                LOWER(C.NOMBRE) = LOWER(%s)
+                        """,
+            "params": [
+                {"name": "nombre_colegio", "label": "Nombre Colegio"}
+            ],
+        },
     },
 
     "USUARIO": {
