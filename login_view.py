@@ -2,6 +2,7 @@ import customtkinter as ctk
 from tkinter import messagebox
 from clear import limpiar
 from session import set_user
+from db import ejecutar_consulta
 from theme import COLOR_2, COLOR_3, COLOR_4, COLOR_5, FONT_TITLE, FONT_SUB, FONT_BUTTON, TEXT_COLOR
 
 def mostrar_login(root):
@@ -54,12 +55,39 @@ def mostrar_login(root):
             usuario = usuario_entry.get()
             contra = contra_entry.get()
 
-            if usuario == "adminbd" and contra == "12345678":
-                set_user(1, "admin", "ADMIN", "Administrador")
-                from menu_view import mostrar_menu
-                mostrar_menu(root)
-            else:
-                messagebox.showerror("Error", "Usuario o contraseña incorrectos")
+            if not usuario or not contra:
+                messagebox.showwarning("Aviso", "Ingrese usuario y contraseña")
+                return
+
+            # Buscar usuario en la base de datos
+            sql = "SELECT id_usuario, nombre_completo, clave_hash, rol, estado FROM usuario WHERE nombre_usuario = %s"
+            resultado = ejecutar_consulta(sql, (usuario,))
+
+            if resultado == (None, None) or not resultado[0]:
+                messagebox.showerror("Error", "Usuario no encontrado")
+                return
+
+            filas = resultado[0]
+            if not filas:
+                messagebox.showerror("Error", "Usuario no encontrado")
+                return
+
+            user_row = filas[0]
+            id_usuario, nombre_completo, clave_hash, rol, estado = user_row
+
+            if not estado:
+                messagebox.showerror("Error", "Usuario desactivado")
+                return
+
+            # Comparar contraseña sin encriptar (simple)
+            if clave_hash != contra:
+                messagebox.showerror("Error", "Contraseña incorrecta")
+                return
+
+            # Login exitoso
+            set_user(id_usuario, usuario, rol, nombre_completo)
+            from menu_view import mostrar_menu
+            mostrar_menu(root)
 
         def volver_login():
             mostrar_login(root)
