@@ -10,7 +10,7 @@ consultas_predef = {
                                                     JOIN VENTA V ON C.No_Id = V.No_Id
                                                     JOIN PEDIDO P ON V.Id_Venta = P.Id_Venta
                                                     JOIN PRODUCTO_TERMINADO PT ON P.No_Pedido = PT.No_Pedido
-                                                    WHERE P.Estado != 'Finalizado';
+                                                    WHERE P.Estado <> 'Entregado';
                                   """,
     },
 
@@ -31,22 +31,36 @@ consultas_predef = {
 
     "PRODUCTO_TERMINADO": {
         "Todos los productos terminados": "SELECT * FROM producto_terminado;",
-        "Productos pendiendes de entrega (ordenado por fecha)": """ SELECT No_Pedido, Estado, Fecha_Encargo
-                                                                    FROM PEDIDO
-                                                                    WHERE Estado != 'Finalizado'
-                                                                    ORDER BY Fecha_Encargo;
+        "Productos pendiendes de entrega (ordenado por fecha)": """ SELECT
+                                                                        P.NO_PEDIDO,
+                                                                        PT.CODIGO_PROD,
+                                                                        P.ESTADO,
+                                                                        P.FECHA_ENCARGO
+                                                                    FROM
+                                                                        PEDIDO P
+                                                                        JOIN PRODUCTO_TERMINADO PT ON P.NO_PEDIDO = PT.NO_PEDIDO
+                                                                    WHERE
+                                                                        P.ESTADO <> 'Entregado'
+                                                                    ORDER BY
+                                                                        P.FECHA_ENCARGO;
                                                                 """,
-        "Existencia real (descuenta encargados)":   """ SELECT Codigo_Prod,
-                                                        Cant_Existencia - COUNT(P.No_Pedido) AS Existencia_Real
+        "Existencia real (descuenta encargados)":   """ SELECT PT.Codigo_Prod,
+                                                        PT.Cant_Existencia - COUNT(P.No_Pedido) AS Existencia_Real
                                                         FROM PRODUCTO_TERMINADO PT
-                                                        LEFT JOIN PEDIDO P ON PT.No_Pedido = P.No_Pedido AND P.Estado != 'Finalizado'
-                                                        GROUP BY Codigo_Prod, Cant_Existencia;
+                                                        LEFT JOIN PEDIDO P ON PT.No_Pedido = P.No_Pedido AND P.Estado <> 'Entregado'
+                                                        GROUP BY PT.Codigo_Prod, PT.Cant_Existencia;
                                                     """,        
-        "Total productos vendidos por colegio": """ SELECT C.Nombre, COUNT(PT.Codigo_Prod) AS Total_Productos
-                                                    FROM COLEGIO C
-                                                    JOIN UNIFORME U ON C.Nit_Colegio = U.Nit_Colegio
-                                                    JOIN PRODUCTO_TERMINADO PT ON U.Codigo_Prod = PT.Codigo_Prod
-                                                    GROUP BY C.Nombre;
+        "Total productos vendidos por colegio": """ SELECT
+                                                        C.NOMBRE,
+                                                        COUNT(PT.CODIGO_PROD) AS TOTAL_PRODUCTOS
+                                                    FROM
+                                                        COLEGIO C
+                                                        JOIN UNIFORME U ON C.NIT_COLEGIO = U.NIT_COLEGIO
+                                                        JOIN PRODUCTO_TERMINADO PT ON U.CODIGO_PROD = PT.CODIGO_PROD
+                                                        JOIN PEDIDO P ON PT.NO_PEDIDO = P.NO_PEDIDO
+                                                        JOIN VENTA V ON P.ID_VENTA = V.ID_VENTA
+                                                    GROUP BY
+                                                        C.NOMBRE;
                                                 """,                                                  
     },
 
@@ -72,7 +86,7 @@ consultas_predef = {
 
     "UNIFORME": {
         "Todos los uniformes": "SELECT * FROM uniforme;",
-        "Listado colegios para los que se fabrica": """ SELECT DISTINCT C.Nit_Colegio, C.Nombre
+        "Listado colegios para los que se fabrica": """ SELECT DISTINCT U.Nit_Colegio, C.Nombre
                                                         FROM COLEGIO C
                                                         JOIN UNIFORME U ON C.Nit_Colegio = U.Nit_Colegio;
                                                     """,
