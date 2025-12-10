@@ -1,4 +1,4 @@
-import tkinter as tk
+import customtkinter as ctk
 from tkinter import ttk, messagebox
 from clear import limpiar
 from db import ejecutar_consulta
@@ -6,10 +6,10 @@ from db import ejecutar_consulta
 def mostrar_crud_cliente(root):
     limpiar(root)
 
-    tk.Label(root, text="CRUD CLIENTE", font=("Arial", 14)).pack(pady=10)
+    ctk.CTkLabel(root, text="CRUD CLIENTE", font=("Arial", 16)).pack(pady=10)
 
-    frame = tk.Frame(root)
-    frame.pack(pady=10)
+    frame = ctk.CTkFrame(root)
+    frame.pack(pady=10, fill="both", expand=False)
 
     tree = ttk.Treeview(frame, columns=("No_Id", "Nombre"), show="headings")
     tree.heading("No_Id", text="No_Id")
@@ -25,26 +25,27 @@ def mostrar_crud_cliente(root):
             filas, _ = resultado
             if filas:
                 for fila in filas:
-                    tree.insert("", tk.END, values=fila)
+                    tree.insert("", "end", values=fila)
 
     cargar_clientes()
 
-    # Campos de entrada
-    tk.Label(root, text="No_Id").pack()
-    id_entry = tk.Entry(root)
+    # Campos
+    ctk.CTkLabel(root, text="No_Id").pack()
+    id_entry = ctk.CTkEntry(root)
     id_entry.pack()
 
-    tk.Label(root, text="Nombre").pack()
-    nombre_entry = tk.Entry(root, width=40)
+    ctk.CTkLabel(root, text="Nombre").pack()
+    nombre_entry = ctk.CTkEntry(root, width=300)
     nombre_entry.pack()
 
-    # Manejo de selección
+    # Selección del Treeview
     def seleccionar(event):
         item = tree.selection()
-        if not item: return
+        if not item:
+            return
         valores = tree.item(item)["values"]
-        id_entry.delete(0, tk.END)
-        nombre_entry.delete(0, tk.END)
+        id_entry.delete(0, "end")
+        nombre_entry.delete(0, "end")
         id_entry.insert(0, valores[0])
         nombre_entry.insert(0, valores[1])
 
@@ -76,20 +77,17 @@ def mostrar_crud_cliente(root):
         idv = id_entry.get()
         if not idv:
             return
-        respuesta = messagebox.askyesno("Confirmar", "¿Desea eliminar este cliente?")
-        if respuesta:
+        if messagebox.askyesno("Confirmar", "¿Desea eliminar este cliente?"):
             sql = "DELETE FROM cliente WHERE No_Id=%s"
             ejecutar_consulta(sql, (idv,))
             cargar_clientes()
             messagebox.showinfo("Éxito", "Cliente eliminado")
 
-    # Botones
-    tk.Button(root, text="Insertar", width=20, command=insertar).pack(pady=3)
-    tk.Button(root, text="Actualizar", width=20, command=actualizar).pack(pady=3)
-    tk.Button(root, text="Eliminar", width=20, command=eliminar).pack(pady=3)
-
-    tk.Button(root, text="Volver", width=20,
-              command=lambda: volver(root)).pack(pady=10)
+    ctk.CTkButton(root, text="Insertar", width=200, command=insertar).pack(pady=3)
+    ctk.CTkButton(root, text="Actualizar", width=200, command=actualizar).pack(pady=3)
+    ctk.CTkButton(root, text="Eliminar", width=200, command=eliminar).pack(pady=3)
+    ctk.CTkButton(root, text="Volver", width=200,
+                  command=lambda: volver(root)).pack(pady=10)
 
 
 def volver(root):

@@ -1,4 +1,4 @@
-import tkinter as tk
+import customtkinter as ctk
 from tkinter import messagebox
 from db import ejecutar_consulta
 from clear import limpiar
@@ -6,12 +6,12 @@ from clear import limpiar
 def mostrar_login(root):
     limpiar(root)
 
-    tk.Label(root, text="Usuario:").pack()
-    usuario_entry = tk.Entry(root)
+    ctk.CTkLabel(root, text="Usuario:").pack(pady=5)
+    usuario_entry = ctk.CTkEntry(root, width=250)
     usuario_entry.pack()
 
-    tk.Label(root, text="Contraseña:").pack()
-    contra_entry = tk.Entry(root, show="*")
+    ctk.CTkLabel(root, text="Contraseña:").pack(pady=5)
+    contra_entry = ctk.CTkEntry(root, show="*", width=250)
     contra_entry.pack()
 
     def validar():
@@ -19,11 +19,12 @@ def mostrar_login(root):
         contra = contra_entry.get()
 
         if usuario == "" and contra == "":
-            from menu_view import mostrar_menu 
+            from menu_view import mostrar_menu
             mostrar_menu(root)
         else:
             messagebox.showerror("Error", "Credenciales incorrectas")
 
-    tk.Button(root, text="Ingresar", command=validar).pack(pady=10)
+    ctk.CTkButton(root, text="Ingresar", command=validar, width=200).pack(pady=15)
+
 
 
