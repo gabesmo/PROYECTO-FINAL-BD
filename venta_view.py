@@ -7,18 +7,29 @@ from datetime import date
 def mostrar_venta(root):
     limpiar(root)
 
-    ctk.CTkLabel(root, text="Procesar Venta / Entrega de Producto", font=("Arial", 16)).pack(pady=10)
+    # Crear TabView para separar las dos funcionalidades
+    tabview = ctk.CTkTabview(root, width=680, height=550)
+    tabview.pack(pady=10, padx=10, fill="both", expand=True)
 
-    frame = ctk.CTkFrame(root)
-    frame.pack(fill="both", expand=True, padx=10, pady=10)
+    tab_pedidos = tabview.add("📦 Entregar Encargos")
+    tab_directa = tabview.add("💰 Venta Directa")
 
-    scrollbar_y = ttk.Scrollbar(frame)
+    # =========================================================================
+    # PESTAÑA 1: ENTREGAR ENCARGOS (Tu lógica original mejorada)
+    # =========================================================================
+    ctk.CTkLabel(tab_pedidos, text="Pedidos Pendientes de Entrega", font=("Arial", 16, "bold")).pack(pady=5)
+
+    frame_pedidos = ctk.CTkFrame(tab_pedidos)
+    frame_pedidos.pack(fill="both", expand=True, padx=5, pady=5)
+
+    # Scrollbars para la tabla
+    scrollbar_y = ttk.Scrollbar(frame_pedidos)
     scrollbar_y.pack(side="right", fill="y")
-    scrollbar_x = ttk.Scrollbar(frame, orient="horizontal")
+    scrollbar_x = ttk.Scrollbar(frame_pedidos, orient="horizontal")
     scrollbar_x.pack(side="bottom", fill="x")
 
     tree = ttk.Treeview(
-        frame,
+        frame_pedidos,
         columns=("No_Pedido", "No_Id", "Nombre_Cliente", "Artículo", "Estado", "Abono", "Fecha_Encargo"),
         show="headings",
         yscrollcommand=scrollbar_y.set,
@@ -28,194 +39,182 @@ def mostrar_venta(root):
     scrollbar_y.config(command=tree.yview)
     scrollbar_x.config(command=tree.xview)
 
-    tree.heading("No_Pedido", text="No Pedido")
-    tree.heading("No_Id", text="No Id")
-    tree.heading("Nombre_Cliente", text="Cliente")
-    tree.heading("Artículo", text="Artículo")
-    tree.heading("Estado", text="Estado")
-    tree.heading("Abono", text="Abono")
-    tree.heading("Fecha_Encargo", text="Fecha Encargo")
-
-    tree.column("No_Pedido", width=80)
-    tree.column("No_Id", width=100)
-    tree.column("Nombre_Cliente", width=150)
-    tree.column("Artículo", width=100)
-    tree.column("Estado", width=100)
-    tree.column("Abono", width=100)
-    tree.column("Fecha_Encargo", width=100)
-
-    info_frame = ctk.CTkFrame(root)
-    info_frame.pack(fill="x", padx=10, pady=10)
-
-    ctk.CTkLabel(info_frame, text="Detalles del Pedido", font=("Arial", 12, "bold")).grid(row=0, column=0, columnspan=2, sticky="w", pady=5)
-
-    info_labels = {}
-    fields = [
-        ("No Pedido", "no_pedido"),
-        ("Cliente", "cliente"),
-        ("Artículo", "articulo"),
-        ("Estado", "estado"),
-        ("Abono", "abono"),
-        ("Fecha Encargo", "fecha_encargo"),
+    # Configuración de columnas
+    columnas = [
+        ("No_Pedido", 80), ("No_Id", 100), ("Nombre_Cliente", 150),
+        ("Artículo", 100), ("Estado", 100), ("Abono", 100), ("Fecha_Encargo", 100)
     ]
-    for idx, (label, key) in enumerate(fields, 1):
-        ctk.CTkLabel(info_frame, text=f"{label}:").grid(row=idx, column=0, sticky="w", padx=5, pady=2)
-        info_labels[key] = ctk.CTkLabel(info_frame, text="")
-        info_labels[key].grid(row=idx, column=1, sticky="w", padx=5, pady=2)
-
-    buttons_frame = ctk.CTkFrame(root)
-    buttons_frame.pack(fill="x", padx=10, pady=10)
+    for col, ancho in columnas:
+        tree.heading(col, text=col.replace("_", " "))
+        tree.column(col, width=ancho)
 
     selected_pedido = {"id": None}
 
     def cargar_pedidos():
         tree.delete(*tree.get_children())
         sql = """
-            SELECT 
-                P.No_Pedido,
-                C.No_Id,
-                C.Nombre,
-                COALESCE(PT.Codigo_Prod, 'N/A') AS Articulo,
-                P.Estado,
-                P.Abono,
-                P.Fecha_Encargo
+            SELECT P.No_Pedido, C.No_Id, C.Nombre, COALESCE(PT.Codigo_Prod, 'N/A'), 
+                   P.Estado, P.Abono, P.Fecha_Encargo
             FROM PEDIDO P
             JOIN VENTA V ON P.Id_Venta = V.Id_Venta
             JOIN CLIENTE C ON V.No_Id = C.No_Id
             LEFT JOIN PRODUCTO_TERMINADO PT ON P.No_Pedido = PT.No_Pedido
             WHERE P.Estado <> 'Entregado'
-            ORDER BY P.Fecha_Encargo DESC
+            ORDER BY P.Fecha_Encargo ASC
         """
         resultado = ejecutar_consulta(sql)
-        if resultado and resultado != (None, None):
-            filas = resultado[0]
-            if filas:
-                for fila in filas:
-                    tree.insert("", "end", values=fila)
-
-    cargar_pedidos()
+        if resultado and resultado[0]:
+            for fila in resultado[0]:
+                tree.insert("", "end", values=fila)
 
     def on_tree_select(_event):
         selection = tree.selection()
-        if not selection:
-            return
-        valores = tree.item(selection[0])["values"]
-        no_pedido = valores[0]
-        selected_pedido["id"] = no_pedido
-
-        for key, label in info_labels.items():
-            label.configure(text="")
-
-        sql = """
-            SELECT 
-                P.No_Pedido,
-                C.Nombre,
-                COALESCE(PT.Codigo_Prod, 'N/A'),
-                P.Estado,
-                P.Abono,
-                P.Fecha_Encargo
-            FROM PEDIDO P
-            JOIN VENTA V ON P.Id_Venta = V.Id_Venta
-            JOIN CLIENTE C ON V.No_Id = C.No_Id
-            LEFT JOIN PRODUCTO_TERMINADO PT ON P.No_Pedido = PT.No_Pedido
-            WHERE P.No_Pedido = %s
-        """
-        resultado = ejecutar_consulta(sql, (no_pedido,))
-        if resultado and resultado != (None, None) and resultado[0]:
-            fila = resultado[0][0]
-            info_labels["no_pedido"].configure(text=str(fila[0]))
-            info_labels["cliente"].configure(text=str(fila[1]))
-            info_labels["articulo"].configure(text=str(fila[2]))
-            info_labels["estado"].configure(text=str(fila[3]))
-            info_labels["abono"].configure(text=str(fila[4]))
-            info_labels["fecha_encargo"].configure(text=str(fila[5]))
+        if selection:
+            selected_pedido["id"] = tree.item(selection[0])["values"][0]
 
     tree.bind("<<TreeviewSelect>>", on_tree_select)
 
-    def procesar_venta():
+    def procesar_entrega():
         if not selected_pedido["id"]:
-            messagebox.showwarning("Aviso", "Seleccione un pedido")
+            messagebox.showwarning("Aviso", "Seleccione un pedido para entregar")
             return
-
+        
         no_pedido = selected_pedido["id"]
-
-        # Obtener datos del pedido
+        # Buscar datos para finalizar venta
         sql = """
-            SELECT P.Id_Venta, V.No_Id, P.Abono, PT.Codigo_Prod, PT.Precio_Venta, PT.Cant_Existencia
+            SELECT P.Id_Venta, PT.Precio_Venta, PT.Codigo_Prod, P.Abono
             FROM PEDIDO P
-            JOIN VENTA V ON P.Id_Venta = V.Id_Venta
             LEFT JOIN PRODUCTO_TERMINADO PT ON P.No_Pedido = PT.No_Pedido
             WHERE P.No_Pedido = %s
         """
-        resultado = ejecutar_consulta(sql, (no_pedido,))
-        if not resultado or resultado == (None, None) or not resultado[0]:
+        res = ejecutar_consulta(sql, (no_pedido,))
+        if not res or not res[0]:
             messagebox.showerror("Error", "No se encontraron datos del pedido")
             return
+            
+        id_venta, precio, cod_prod, abono = res[0][0]
+        
+        if not precio: 
+            precio = 0.0
 
-        fila = resultado[0][0]
-        id_venta, no_id, abono, codigo_prod, precio_venta, cant_existencia = fila
+        saldo_pendiente = float(precio) - float(abono)
 
-        if not codigo_prod or not precio_venta:
-            messagebox.showerror("Error", "El pedido no tiene producto o precio definido")
+        if messagebox.askyesno("Confirmar Entrega", f"Total: ${precio}\nAbonado: ${abono}\n\nSaldo a Pagar: ${saldo_pendiente}\n¿Confirmar entrega y pago?"):
+            # Actualizar Venta
+            ejecutar_consulta("UPDATE venta SET total_venta = %s, fecha_venta = %s, tipo_pago = 'Efectivo' WHERE id_venta = %s", 
+                            (precio, date.today(), id_venta))
+            # Actualizar Pedido
+            ejecutar_consulta("UPDATE pedido SET estado = 'Entregado' WHERE no_pedido = %s", (no_pedido,))
+            # Descontar Stock
+            ejecutar_consulta("UPDATE producto_terminado SET cant_existencia = cant_existencia - 1 WHERE codigo_prod = %s", (cod_prod,))
+            
+            messagebox.showinfo("Éxito", "Pedido entregado y venta registrada.")
+            cargar_pedidos()
+            cargar_productos_stock() # Actualizar también la otra pestaña
+
+    btn_frame_1 = ctk.CTkFrame(tab_pedidos)
+    btn_frame_1.pack(fill="x", pady=10)
+    ctk.CTkButton(btn_frame_1, text="Procesar Entrega", command=procesar_entrega).pack(side="left", padx=10, expand=True)
+    ctk.CTkButton(btn_frame_1, text="Actualizar Lista", command=cargar_pedidos).pack(side="left", padx=10, expand=True)
+
+    cargar_pedidos()
+
+    # =========================================================================
+    # PESTAÑA 2: VENTA DIRECTA (Nueva funcionalidad)
+    # =========================================================================
+    ctk.CTkLabel(tab_directa, text="Nueva Venta de Stock", font=("Arial", 16, "bold")).pack(pady=5)
+    
+    # --- Selección de Cliente ---
+    frame_cliente = ctk.CTkFrame(tab_directa)
+    frame_cliente.pack(fill="x", padx=10, pady=5)
+    
+    ctk.CTkLabel(frame_cliente, text="Cliente:").pack(side="left", padx=5)
+    
+    def get_clientes():
+        res = ejecutar_consulta("SELECT no_id, nombre FROM cliente")
+        return [f"{r[0]} - {r[1]}" for r in res[0]] if res and res[0] else []
+
+    cb_clientes = ctk.CTkComboBox(frame_cliente, values=get_clientes(), width=300)
+    cb_clientes.pack(side="left", padx=5)
+
+    # --- Selección de Producto ---
+    frame_prod = ctk.CTkFrame(tab_directa)
+    frame_prod.pack(fill="both", expand=True, padx=10, pady=5)
+    
+    ctk.CTkLabel(frame_prod, text="Seleccione Producto del Inventario:", anchor="w").pack(fill="x", padx=5)
+
+    # Tabla de productos para seleccionar
+    tree_stock = ttk.Treeview(frame_prod, columns=("Codigo", "Descripcion", "Talla", "Precio", "Stock"), show="headings", height=8)
+    tree_stock.pack(fill="both", expand=True, pady=5)
+    
+    for col in ["Codigo", "Descripcion", "Talla", "Precio", "Stock"]:
+        tree_stock.heading(col, text=col)
+        tree_stock.column(col, width=100)
+
+    selected_stock = {"codigo": None, "precio": 0}
+
+    def cargar_productos_stock():
+        tree_stock.delete(*tree_stock.get_children())
+        # Solo mostrar productos con stock > 0
+        sql = "SELECT codigo_prod, descripcion, talla, precio_venta, cant_existencia FROM producto_terminado WHERE cant_existencia > 0"
+        res = ejecutar_consulta(sql)
+        if res and res[0]:
+            for row in res[0]:
+                tree_stock.insert("", "end", values=row)
+
+    def on_stock_select(_event):
+        sel = tree_stock.selection()
+        if sel:
+            vals = tree_stock.item(sel[0])["values"]
+            selected_stock["codigo"] = vals[0]
+            selected_stock["precio"] = vals[3]
+            lbl_resumen.configure(text=f"Producto: {vals[1]} | Precio: ${vals[3]}")
+
+    tree_stock.bind("<<TreeviewSelect>>", on_stock_select)
+
+    # --- Botones y Resumen ---
+    frame_resumen = ctk.CTkFrame(tab_directa)
+    frame_resumen.pack(fill="x", padx=10, pady=10)
+
+    lbl_resumen = ctk.CTkLabel(frame_resumen, text="Seleccione un producto...", font=("Arial", 14))
+    lbl_resumen.pack(pady=5)
+
+    def registrar_venta_directa():
+        cliente_val = cb_clientes.get()
+        if not cliente_val:
+            messagebox.showwarning("Error", "Seleccione un cliente")
+            return
+        if not selected_stock["codigo"]:
+            messagebox.showwarning("Error", "Seleccione un producto de la tabla")
             return
 
-        # Generar factura (actualizar VENTA con total, actualizar PEDIDO a "Entregado", descontar stock)
-        total_venta = float(precio_venta)
+        no_id = cliente_val.split(" - ")[0]
+        codigo = selected_stock["codigo"]
+        precio = float(selected_stock["precio"])
 
-        # 1. Actualizar VENTA
-        sql_venta = "UPDATE venta SET total_venta = %s, fecha_venta = %s WHERE id_venta = %s"
-        resultado = ejecutar_consulta(sql_venta, (total_venta, date.today(), id_venta))
-        if resultado == (None, None):
-            messagebox.showerror("Error", "No se pudo actualizar la venta")
-            return
+        if messagebox.askyesno("Confirmar", f"¿Registrar venta por ${precio}?"):
+            # 1. Insertar Venta
+            sql_venta = "INSERT INTO venta (no_id, total_venta, fecha_venta, tipo_pago) VALUES (%s, %s, %s, %s) RETURNING id_venta"
+            res = ejecutar_consulta(sql_venta, (no_id, precio, date.today(), "Efectivo"))
+            
+            if res and res[0]:
+                # 2. Descontar Inventario
+                sql_upd = "UPDATE producto_terminado SET cant_existencia = cant_existencia - 1 WHERE codigo_prod = %s"
+                ejecutar_consulta(sql_upd, (codigo,))
+                
+                messagebox.showinfo("Éxito", "Venta registrada correctamente")
+                cargar_productos_stock()
+                lbl_resumen.configure(text="Seleccione un producto...")
+                selected_stock["codigo"] = None
+            else:
+                messagebox.showerror("Error", "No se pudo registrar la venta")
 
-        # 2. Actualizar PEDIDO estado a "Entregado"
-        sql_pedido = "UPDATE pedido SET estado = %s WHERE no_pedido = %s"
-        resultado = ejecutar_consulta(sql_pedido, ("Entregado", no_pedido))
-        if resultado == (None, None):
-            messagebox.showerror("Error", "No se pudo actualizar el pedido")
-            return
+    ctk.CTkButton(frame_resumen, text="💰 Registrar Venta Directa", command=registrar_venta_directa, fg_color="#2CC985", hover_color="#26A86F").pack(pady=10)
+    
+    cargar_productos_stock()
 
-        # 3. Descontar stock
-        nueva_cantidad = int(cant_existencia) - 1
-        sql_stock = "UPDATE producto_terminado SET cant_existencia = %s WHERE codigo_prod = %s"
-        resultado = ejecutar_consulta(sql_stock, (nueva_cantidad, codigo_prod))
-        if resultado == (None, None):
-            messagebox.showerror("Error", "No se pudo actualizar el inventario")
-            return
-
-        # Mostrar factura
-        factura_text = f"""
-        ╔════════════════════════════════════╗
-        ║         FACTURA DE VENTA           ║
-        ╚════════════════════════════════════╝
-        
-        No Venta:     {id_venta}
-        No Pedido:    {no_pedido}
-        Cliente:      {no_id}
-        Fecha:        {date.today()}
-        
-        Producto:     {codigo_prod}
-        Precio:       ${precio_venta}
-        Abono:        ${abono}
-        ─────────────────────────────────────
-        TOTAL VENTA:  ${total_venta}
-        
-        Estado:       ENTREGADO
-        
-        ════════════════════════════════════
-        """
-        messagebox.showinfo("Factura Generada", factura_text)
-
-        # Recargar listado
-        cargar_pedidos()
-        for key, label in info_labels.items():
-            label.configure(text="")
-        selected_pedido["id"] = None
-
-    ctk.CTkButton(buttons_frame, text="Procesar Venta", width=180, command=procesar_venta).pack(side="left", padx=5)
-    ctk.CTkButton(buttons_frame, text="Recargar", width=180, command=cargar_pedidos).pack(side="left", padx=5)
-    ctk.CTkButton(buttons_frame, text="Volver", width=180, command=lambda: volver(root)).pack(side="right", padx=5)
+    # Botón Volver General
+    ctk.CTkButton(root, text="Volver al Menú", command=lambda: volver(root)).pack(pady=5)
 
 def volver(root):
     from menu_view import mostrar_menu

@@ -1,42 +1,50 @@
+# ...existing code...
 import psycopg2
+import psycopg2.extras
 
 def conectar():
     try:
         conn = psycopg2.connect(
             host="localhost",
-            database="CONFECCIONES",
+            database="confeccionesuv",
             user="postgres",
-            password="08220920"
+            password="2006"
         )
+        # asegurar encoding
+        conn.set_client_encoding("UTF8")
         return conn
     except Exception as e:
         print("Error en la conexión:", e)
         return None
 
-
 def ejecutar_consulta(sql, params=None):
     conn = conectar()
     if not conn:
-        return None, None
-
+        return (None, None)
     try:
         cur = conn.cursor()
         cur.execute(sql, params)
-
-        # Si la consulta retorna filas (SELECT), cur.description trae metadatos
+        rows = None
+        cols = None
+        # si la consulta retorna filas (SELECT o RETURNING)
         if cur.description:
-            filas = cur.fetchall()
-            columnas = [desc[0] for desc in cur.description]
-            conn.close()
-            return filas, columnas
-
-        # Para INSERT/UPDATE/DELETE se hace commit y se retorna filas afectadas
+            rows = cur.fetchall()
+            cols = [d[0] for d in cur.description]
+        else:
+            rows = []
         conn.commit()
-        afectadas = cur.rowcount
+        cur.close()
         conn.close()
-        return afectadas, []
+        return (rows, cols)
     except Exception as e:
-        print("Error:", e)
-        conn.rollback()
-        conn.close()
-        return None, None
+        print("Error en ejecutar_consulta:", e)
+        try:
+            conn.rollback()
+        except:
+            pass
+        try:
+            conn.close()
+        except:
+            pass
+        return (None, None)
+# ...existing code...

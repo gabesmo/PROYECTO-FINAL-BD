@@ -89,9 +89,12 @@ def mostrar_gestion_pedidos(root):
     tree.column("Fecha_Encargo", width=100)
     tree.column("Abono", width=80)
 
+# ...existing code...
     def cargar_pedidos(cliente_id=None):
         tree.delete(*tree.get_children())
         if cliente_id:
+            # asegurarse de pasar el id como texto
+            cliente_id_str = str(cliente_id)
             sql = """
                 SELECT P.No_Pedido, C.No_Id, COALESCE(PT.Codigo_Prod, 'N/A'), P.Estado, P.Fecha_Encargo, P.Abono
                 FROM PEDIDO P
@@ -101,7 +104,7 @@ def mostrar_gestion_pedidos(root):
                 WHERE C.No_Id = %s
                 ORDER BY P.Fecha_Encargo DESC
             """
-            resultado = ejecutar_consulta(sql, (cliente_id,))
+            resultado = ejecutar_consulta(sql, (cliente_id_str,))
         else:
             sql = """
                 SELECT P.No_Pedido, C.No_Id, COALESCE(PT.Codigo_Prod, 'N/A'), P.Estado, P.Fecha_Encargo, P.Abono
@@ -112,6 +115,7 @@ def mostrar_gestion_pedidos(root):
                 ORDER BY P.Fecha_Encargo DESC
             """
             resultado = ejecutar_consulta(sql)
+# ...existing code...
 
         if resultado and resultado != (None, None) and resultado[0]:
             for fila in resultado[0]:
@@ -119,11 +123,14 @@ def mostrar_gestion_pedidos(root):
 
     cargar_pedidos()
 
+# ...existing code...
     def crear_pedido():
-        cliente_id = cliente_cb.get()
-        if not cliente_id:
+        cliente_id_raw = cliente_cb.get()
+        if not cliente_id_raw:
             messagebox.showwarning("Aviso", "Seleccione un cliente")
             return
+
+        cliente_id = str(cliente_id_raw)
 
         codigo_prod = form_fields["codigo_prod"].get().strip()
         medidas = form_fields["medidas"].get().strip()
@@ -141,35 +148,37 @@ def mostrar_gestion_pedidos(root):
             messagebox.showwarning("Aviso", "Abono debe ser numérico")
             return
 
-        # Crear venta si no existe para este cliente y hoy
+        # Crear venta y obtener id_venta (RETURNING)
         sql_venta = "INSERT INTO venta (no_id, total_venta, fecha_venta, tipo_pago) VALUES (%s, %s, %s, %s) RETURNING id_venta"
         resultado = ejecutar_consulta(sql_venta, (cliente_id, 0.0, date.today(), "Pendiente"))
         if resultado == (None, None) or not resultado[0]:
             messagebox.showerror("Error", "No se pudo crear la venta")
             return
 
-        id_venta = resultado[0][0][0]
+        # resultado[0] es lista de filas; la primera fila, primera columna es id_venta
+        id_venta = resultado[0][0][0] if isinstance(resultado[0][0], (list, tuple)) else resultado[0][0]
 
-        # Crear pedido
+        # Crear pedido y obtener no_pedido (RETURNING)
         sql_pedido = """
             INSERT INTO pedido (id_venta, abono, estado, fecha_encargo, medidas_persona, fecha_pos_en)
-            VALUES (%s, %s, %s, %s, %s, %s)
+            VALUES (%s, %s, %s, %s, %s, %s) RETURNING no_pedido
         """
-        resultado = ejecutar_consulta(
+        resultado_p = ejecutar_consulta(
             sql_pedido,
             (id_venta, abono, "Pendiente", fecha_encargo, medidas, fecha_pos_en if fecha_pos_en else None),
         )
-        if resultado == (None, None):
+        if resultado_p == (None, None) or not resultado_p[0]:
             messagebox.showerror("Error", "No se pudo crear el pedido")
             return
 
-        # Crear producto terminado asociado al pedido
+        no_pedido = resultado_p[0][0][0] if isinstance(resultado_p[0][0], (list, tuple)) else resultado_p[0][0]
+
+        # Crear producto_terminado asociado al pedido usando no_pedido válido
         sql_prod = "INSERT INTO producto_terminado (codigo_prod, no_pedido, cant_existencia, sexo, talla) VALUES (%s, %s, %s, %s, %s)"
-        # Nota: no_pedido se obtiene del RETURNING del pedido anterior, pero aquí usamos un workaround
-        # En un sistema real deberías capturar el no_pedido retornado
-        resultado_prod = ejecutar_consulta(sql_prod, (codigo_prod, None, 1, "Mixto", "N/A"))
-        if resultado_prod != (None, None):
-            pass  # Producto creado
+        resultado_prod = ejecutar_consulta(sql_prod, (codigo_prod, no_pedido, 1, "Mixto", "N/A"))
+        # no necesitamos RETURNING aquí; comprobar si hubo error
+        if resultado_prod == (None, None):
+            messagebox.showwarning("Aviso", "Pedido creado pero no se pudo crear el producto asociado")
 
         messagebox.showinfo("Éxito", "Pedido creado correctamente")
 
@@ -181,6 +190,7 @@ def mostrar_gestion_pedidos(root):
         form_fields["fecha_pos_en"].insert(0, str(date.today()))
 
         cargar_pedidos(cliente_id)
+# ...existing code...
 
     # Botones
     buttons_frame = ctk.CTkFrame(root)
