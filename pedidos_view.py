@@ -9,6 +9,14 @@ def mostrar_gestion_pedidos(root):
 
     ctk.CTkLabel(root, text="Gestión de Pedidos", font=("Arial", 16)).pack(pady=10)
 
+    # Función auxiliar para cargar clientes
+    def cargar_clientes():
+        sql = "SELECT DISTINCT no_id FROM cliente ORDER BY no_id"
+        resultado = ejecutar_consulta(sql)
+        if resultado and resultado != (None, None) and resultado[0]:
+            return [str(r[0]) for r in resultado[0]]
+        return []
+
     # Frame para seleccionar cliente o crear nuevo
     cliente_frame = ctk.CTkFrame(root)
     cliente_frame.pack(fill="x", padx=10, pady=5)
@@ -80,13 +88,6 @@ def mostrar_gestion_pedidos(root):
     tree.column("Estado", width=80)
     tree.column("Fecha_Encargo", width=100)
     tree.column("Abono", width=80)
-
-    def cargar_clientes():
-        sql = "SELECT DISTINCT no_id FROM cliente ORDER BY no_id"
-        resultado = ejecutar_consulta(sql)
-        if resultado and resultado != (None, None) and resultado[0]:
-            return [str(r[0]) for r in resultado[0]]
-        return []
 
     def cargar_pedidos(cliente_id=None):
         tree.delete(*tree.get_children())
